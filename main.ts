@@ -108,6 +108,152 @@ interface FencedBlock {
 
 const MAX_CAPTURE_BYTES = 1024 * 1024;
 
+type LocaleKey =
+  | "runCurrentNote"
+  | "pathTemplateModalAdd"
+  | "pathTemplateModalEdit"
+  | "pathTemplateModalDesc"
+  | "templateName"
+  | "templateNameDesc"
+  | "path"
+  | "pathDesc"
+  | "cancel"
+  | "yes"
+  | "no"
+  | "save"
+  | "openMarkdownNote"
+  | "noScriptSection"
+  | "pythonRunCanceled"
+  | "installingMissingPackages"
+  | "pipInstallFailed"
+  | "pythonRunMissingResult"
+  | "pythonTimedOut"
+  | "pythonRunCompleted"
+  | "pythonExited"
+  | "pythonRunnerFailed"
+  | "runPythonNote"
+  | "document"
+  | "python"
+  | "workingDirectory"
+  | "pythonIsRunning"
+  | "invalidTemplateName"
+  | "reservedTemplateName"
+  | "emptyTemplatePath"
+  | "defaultPythonPath"
+  | "defaultPythonPathDesc"
+  | "defaultWorkingDirectory"
+  | "defaultWorkingDirectoryDesc"
+  | "timeoutSeconds"
+  | "timeoutSecondsDesc"
+  | "pathTemplates"
+  | "pathTemplatesDesc"
+  | "noteDirDesc"
+  | "vaultRootDesc"
+  | "edit"
+  | "delete"
+  | "customPathTemplate"
+  | "customPathTemplateDesc"
+  | "add";
+
+const UI_TEXT: Record<"en" | "ko", Record<LocaleKey, string>> = {
+  en: {
+    runCurrentNote: "Run current note",
+    pathTemplateModalAdd: "Add path template",
+    pathTemplateModalEdit: "Edit path template",
+    pathTemplateModalDesc:
+      "Use the template in notes as {{template_name}}. Reserved templates note_dir and vault_root cannot be edited.",
+    templateName: "Template name",
+    templateNameDesc: "Letters, numbers, and underscores only. Example: data_dir",
+    path: "Path",
+    pathDesc: "May include {{note_dir}}, {{vault_root}}, or another custom template.",
+    cancel: "Cancel",
+    yes: "Yes",
+    no: "No",
+    save: "Save",
+    openMarkdownNote: "Open a markdown note before running Python.",
+    noScriptSection: "No Script section found.",
+    pythonRunCanceled: "Python run canceled.",
+    installingMissingPackages: "Installing missing Python packages: {packages}",
+    pipInstallFailed: "pip install failed.",
+    pythonRunMissingResult: "Python run did not produce a result.",
+    pythonTimedOut: "Python timed out after {seconds}s.",
+    pythonRunCompleted: "Python run completed.",
+    pythonExited: "Python exited with code {code}.",
+    pythonRunnerFailed: "Python Runner failed: {message}",
+    runPythonNote: "Run Python note?",
+    document: "Document",
+    python: "Python",
+    workingDirectory: "Working directory",
+    pythonIsRunning: "Python is running",
+    invalidTemplateName: "Template name must use letters, numbers, and underscores, and cannot start with a number.",
+    reservedTemplateName: "note_dir and vault_root are reserved templates.",
+    emptyTemplatePath: "Template path cannot be empty.",
+    defaultPythonPath: "Default Python path",
+    defaultPythonPathDesc: "Used when the note does not include a Python section.",
+    defaultWorkingDirectory: "Default working directory",
+    defaultWorkingDirectoryDesc: "Use '.', '{{note_dir}}', '{{vault_root}}', an absolute path, or a note-dir-relative path.",
+    timeoutSeconds: "Timeout seconds",
+    timeoutSecondsDesc: "The plugin stops a Python run after this many seconds.",
+    pathTemplates: "Path templates",
+    pathTemplatesDesc: "Reserved templates are available in Python paths, working directories, and Variables strings.",
+    noteDirDesc: "Folder containing the current markdown note. Reserved and read-only.",
+    vaultRootDesc: "Root folder of the current Obsidian vault. Reserved and read-only.",
+    edit: "Edit",
+    delete: "Delete",
+    customPathTemplate: "Custom path template",
+    customPathTemplateDesc: "Add a reusable path token such as {{data_dir}} or {{venv_dir}}.",
+    add: "Add"
+  },
+  ko: {
+    runCurrentNote: "현재 노트 실행",
+    pathTemplateModalAdd: "경로 템플릿 추가",
+    pathTemplateModalEdit: "경로 템플릿 수정",
+    pathTemplateModalDesc:
+      "노트에서는 {{template_name}} 형태로 사용합니다. 예약 템플릿 note_dir, vault_root는 수정할 수 없습니다.",
+    templateName: "템플릿 이름",
+    templateNameDesc: "영문, 숫자, 밑줄만 사용할 수 있습니다. 예: data_dir",
+    path: "경로",
+    pathDesc: "{{note_dir}}, {{vault_root}}, 다른 사용자 템플릿을 포함할 수 있습니다.",
+    cancel: "취소",
+    yes: "예",
+    no: "아니오",
+    save: "저장",
+    openMarkdownNote: "Python을 실행할 마크다운 노트를 먼저 열어주세요.",
+    noScriptSection: "Script 섹션을 찾을 수 없습니다.",
+    pythonRunCanceled: "Python 실행을 취소했습니다.",
+    installingMissingPackages: "누락된 Python 패키지를 설치하는 중입니다: {packages}",
+    pipInstallFailed: "pip install에 실패했습니다.",
+    pythonRunMissingResult: "Python 실행 결과가 생성되지 않았습니다.",
+    pythonTimedOut: "Python 실행이 {seconds}초 후 시간 초과되었습니다.",
+    pythonRunCompleted: "Python 실행이 완료되었습니다.",
+    pythonExited: "Python이 종료 코드 {code}로 종료되었습니다.",
+    pythonRunnerFailed: "Python Runner 실행 실패: {message}",
+    runPythonNote: "Python 노트를 실행할까요?",
+    document: "문서",
+    python: "Python",
+    workingDirectory: "작업 디렉토리",
+    pythonIsRunning: "Python 실행 중",
+    invalidTemplateName: "템플릿 이름은 영문, 숫자, 밑줄만 사용할 수 있고 숫자로 시작할 수 없습니다.",
+    reservedTemplateName: "note_dir와 vault_root는 예약 템플릿입니다.",
+    emptyTemplatePath: "템플릿 경로를 입력해야 합니다.",
+    defaultPythonPath: "기본 Python 경로",
+    defaultPythonPathDesc: "노트에 Python 섹션이 없을 때 사용합니다.",
+    defaultWorkingDirectory: "기본 작업 디렉토리",
+    defaultWorkingDirectoryDesc: "'.', '{{note_dir}}', '{{vault_root}}', 절대경로, 노트 폴더 기준 상대경로를 사용할 수 있습니다.",
+    timeoutSeconds: "제한 시간(초)",
+    timeoutSecondsDesc: "설정한 시간이 지나면 Python 실행을 중지합니다.",
+    pathTemplates: "경로 템플릿",
+    pathTemplatesDesc: "예약 템플릿은 Python 경로, 작업 디렉토리, Variables 문자열에서 사용할 수 있습니다.",
+    noteDirDesc: "현재 마크다운 노트가 있는 폴더입니다. 예약 템플릿이며 읽기 전용입니다.",
+    vaultRootDesc: "현재 Obsidian vault 루트 폴더입니다. 예약 템플릿이며 읽기 전용입니다.",
+    edit: "수정",
+    delete: "삭제",
+    customPathTemplate: "사용자 경로 템플릿",
+    customPathTemplateDesc: "{{data_dir}}, {{venv_dir}} 같은 재사용 경로 토큰을 추가합니다.",
+    add: "추가"
+  }
+};
+
 export default class PythonRunnerPlugin extends Plugin {
   settings: PythonRunnerSettings;
   settingTab: PythonRunnerSettingTab;
@@ -117,7 +263,7 @@ export default class PythonRunnerPlugin extends Plugin {
 
     this.addCommand({
       id: "run-current-note",
-      name: "Run current note",
+      name: localize(this.app, "runCurrentNote"),
       callback: () => this.runCurrentNote()
     });
 
@@ -140,11 +286,12 @@ export default class PythonRunnerPlugin extends Plugin {
   }
 
   private async runCurrentNote() {
+    const t = getTranslator(this.app);
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     const file = view?.file;
 
     if (!(file instanceof TFile)) {
-      new Notice("Open a markdown note before running Python.");
+      new Notice(t("openMarkdownNote"));
       return;
     }
 
@@ -155,7 +302,7 @@ export default class PythonRunnerPlugin extends Plugin {
       const script = readSectionValue(source, sections, "Script");
 
       if (!script) {
-        new Notice("No Script section found.");
+        new Notice(t("noScriptSection"));
         return;
       }
 
@@ -163,7 +310,7 @@ export default class PythonRunnerPlugin extends Plugin {
 
       const confirmed = await confirmRun(this.app, file, config.pythonPath, config.workingDirectory);
       if (!confirmed) {
-        new Notice("Python run canceled.");
+        new Notice(t("pythonRunCanceled"));
         return;
       }
 
@@ -185,7 +332,7 @@ export default class PythonRunnerPlugin extends Plugin {
           install = { missingPackages };
 
           if (missingPackages.length > 0) {
-            new Notice(`Installing missing Python packages: ${missingPackages.join(", ")}`);
+            new Notice(formatLocalized(t("installingMissingPackages"), { packages: missingPackages.join(", ") }));
             install.result = await this.installMissingRequirements(config, missingPackages);
 
             if (!install.result.ok) {
@@ -194,7 +341,7 @@ export default class PythonRunnerPlugin extends Plugin {
                 timedOut: false,
                 canceled: false,
                 stdout: "",
-                stderr: install.result.stderr || "pip install failed."
+                stderr: install.result.stderr || t("pipInstallFailed")
               };
             }
           }
@@ -221,7 +368,7 @@ export default class PythonRunnerPlugin extends Plugin {
           timedOut: false,
           canceled: false,
           stdout: "",
-          stderr: "Python run did not produce a result."
+          stderr: t("pythonRunMissingResult")
         };
       }
 
@@ -246,17 +393,17 @@ export default class PythonRunnerPlugin extends Plugin {
       await this.app.vault.modify(file, nextSource);
 
       if (result.canceled) {
-        new Notice("Python run canceled.");
+        new Notice(t("pythonRunCanceled"));
       } else if (result.timedOut) {
-        new Notice(`Python timed out after ${config.timeoutSeconds}s.`);
+        new Notice(formatLocalized(t("pythonTimedOut"), { seconds: String(config.timeoutSeconds) }));
       } else if (result.exitCode === 0) {
-        new Notice("Python run completed.");
+        new Notice(t("pythonRunCompleted"));
       } else {
-        new Notice(`Python exited with code ${result.exitCode}.`);
+        new Notice(formatLocalized(t("pythonExited"), { code: String(result.exitCode) }));
       }
     } catch (error) {
       console.error(error);
-      new Notice(`Python Runner failed: ${error instanceof Error ? error.message : String(error)}`);
+      new Notice(formatLocalized(t("pythonRunnerFailed"), { message: error instanceof Error ? error.message : String(error) }));
     }
   }
 
@@ -510,21 +657,22 @@ class ConfirmRunModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    const t = getTranslator(this.app);
     contentEl.empty();
-    contentEl.createEl("h2", { text: "Run Python note?" });
-    contentEl.createEl("p", { text: `Document: ${this.file.path}` });
-    contentEl.createEl("p", { text: `Python: ${this.pythonPath}` });
-    contentEl.createEl("p", { text: `Working directory: ${this.workingDirectory}` });
+    contentEl.createEl("h2", { text: t("runPythonNote") });
+    contentEl.createEl("p", { text: `${t("document")}: ${this.file.path}` });
+    contentEl.createEl("p", { text: `${t("python")}: ${this.pythonPath}` });
+    contentEl.createEl("p", { text: `${t("workingDirectory")}: ${this.workingDirectory}` });
 
     new Setting(contentEl)
       .addButton((button) =>
         button
-          .setButtonText("No")
+          .setButtonText(t("no"))
           .onClick(() => this.finish(false))
       )
       .addButton((button) =>
         button
-          .setButtonText("Yes")
+          .setButtonText(t("yes"))
           .setCta()
           .onClick(() => this.finish(true))
       );
@@ -558,13 +706,14 @@ class RunningPythonModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    const t = getTranslator(this.app);
     contentEl.empty();
-    contentEl.createEl("h2", { text: "Python is running" });
-    contentEl.createEl("p", { text: `Document: ${this.filePath}` });
+    contentEl.createEl("h2", { text: t("pythonIsRunning") });
+    contentEl.createEl("p", { text: `${t("document")}: ${this.filePath}` });
 
     new Setting(contentEl).addButton((button) =>
       button
-        .setButtonText("Cancel")
+        .setButtonText(t("cancel"))
         .setWarning()
         .onClick(() => {
           this.cancelRun?.();
@@ -594,15 +743,16 @@ class PathTemplateModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    const t = getTranslator(this.app);
     contentEl.empty();
-    contentEl.createEl("h2", { text: this.existingName ? "Edit path template" : "Add path template" });
+    contentEl.createEl("h2", { text: this.existingName ? t("pathTemplateModalEdit") : t("pathTemplateModalAdd") });
     contentEl.createEl("p", {
-      text: "Use the template in notes as {{template_name}}. Reserved templates note_dir and vault_root cannot be edited."
+      text: t("pathTemplateModalDesc")
     });
 
     new Setting(contentEl)
-      .setName("Template name")
-      .setDesc("Letters, numbers, and underscores only. Example: data_dir")
+      .setName(t("templateName"))
+      .setDesc(t("templateNameDesc"))
       .addText((text) => {
         text
           .setPlaceholder("data_dir")
@@ -614,8 +764,8 @@ class PathTemplateModal extends Modal {
       });
 
     new Setting(contentEl)
-      .setName("Path")
-      .setDesc("May include {{note_dir}}, {{vault_root}}, or another custom template.")
+      .setName(t("path"))
+      .setDesc(t("pathDesc"))
       .addText((text) =>
         text
           .setPlaceholder("{{vault_root}}\\data")
@@ -628,24 +778,24 @@ class PathTemplateModal extends Modal {
     new Setting(contentEl)
       .addButton((button) =>
         button
-          .setButtonText("Cancel")
+          .setButtonText(t("cancel"))
           .onClick(() => this.close())
       )
       .addButton((button) =>
         button
-          .setButtonText("Save")
+          .setButtonText(t("save"))
           .setCta()
           .onClick(async () => {
             if (!isValidTemplateName(this.nameValue)) {
-              new Notice("Template name must use letters, numbers, and underscores, and cannot start with a number.");
+              new Notice(t("invalidTemplateName"));
               return;
             }
             if (isReservedTemplateName(this.nameValue)) {
-              new Notice("note_dir and vault_root are reserved templates.");
+              new Notice(t("reservedTemplateName"));
               return;
             }
             if (!this.pathValue) {
-              new Notice("Template path cannot be empty.");
+              new Notice(t("emptyTemplatePath"));
               return;
             }
 
@@ -668,11 +818,12 @@ class PythonRunnerSettingTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
+    const t = getTranslator(this.app);
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName("Default Python path")
-      .setDesc("Used when the note does not include a Python section.")
+      .setName(t("defaultPythonPath"))
+      .setDesc(t("defaultPythonPathDesc"))
       .addText((text) =>
         text
           .setPlaceholder("python")
@@ -684,8 +835,8 @@ class PythonRunnerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Default working directory")
-      .setDesc("Use '.', '{{note_dir}}', '{{vault_root}}', an absolute path, or a note-dir-relative path.")
+      .setName(t("defaultWorkingDirectory"))
+      .setDesc(t("defaultWorkingDirectoryDesc"))
       .addText((text) =>
         text
           .setPlaceholder(".")
@@ -698,8 +849,8 @@ class PythonRunnerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Timeout seconds")
-      .setDesc("The plugin stops a Python run after this many seconds.")
+      .setName(t("timeoutSeconds"))
+      .setDesc(t("timeoutSecondsDesc"))
       .addText((text) =>
         text
           .setPlaceholder("60")
@@ -711,28 +862,33 @@ class PythonRunnerSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl("h3", { text: "Path templates" });
+    containerEl.createEl("h3", { text: t("pathTemplates") });
     containerEl.createEl("p", {
-      text: "Reserved templates are available in Python paths, working directories, and Variables strings."
+      text: t("pathTemplatesDesc")
     });
 
     new Setting(containerEl)
       .setName("{{note_dir}}")
-      .setDesc("Folder containing the current markdown note. Reserved and read-only.");
+      .setDesc(t("noteDirDesc"));
 
     new Setting(containerEl)
       .setName("{{vault_root}}")
-      .setDesc("Root folder of the current Obsidian vault. Reserved and read-only.");
+      .setDesc(t("vaultRootDesc"));
 
     for (const [name, templatePath] of Object.entries(this.plugin.settings.pathTemplates).sort()) {
       const setting = new Setting(containerEl)
-        .setName(`{{${name}}}`)
-        .setDesc(templatePath)
-        .addButton((button) =>
-          button
-            .setButtonText("Edit")
-            .onClick(() => new PathTemplateModal(this.app, this.plugin, name).open())
-        );
+        .setName(`{{${name}}}`);
+
+      setting.settingEl.addClass("python-runner-path-template-setting");
+      setting.controlEl.createDiv({
+        cls: "python-runner-template-path",
+        text: templatePath
+      });
+      setting.addButton((button) =>
+        button
+          .setButtonText(t("edit"))
+          .onClick(() => new PathTemplateModal(this.app, this.plugin, name).open())
+      );
 
       const koreanLabel = BUILT_IN_PATH_TEMPLATE_LABELS[name];
       if (koreanLabel) {
@@ -743,7 +899,7 @@ class PythonRunnerSettingTab extends PluginSettingTab {
       } else {
         setting.addButton((button) =>
           button
-            .setButtonText("Delete")
+            .setButtonText(t("delete"))
             .setWarning()
             .onClick(async () => {
               delete this.plugin.settings.pathTemplates[name];
@@ -755,11 +911,11 @@ class PythonRunnerSettingTab extends PluginSettingTab {
     }
 
     new Setting(containerEl)
-      .setName("Custom path template")
-      .setDesc("Add a reusable path token such as {{data_dir}} or {{venv_dir}}.")
+      .setName(t("customPathTemplate"))
+      .setDesc(t("customPathTemplateDesc"))
       .addButton((button) =>
         button
-          .setButtonText("Add")
+          .setButtonText(t("add"))
           .setCta()
           .onClick(() => new PathTemplateModal(this.app, this.plugin).open())
       );
@@ -775,6 +931,38 @@ function confirmRun(
   return new Promise((resolve) => {
     new ConfirmRunModal(app, file, pythonPath, workingDirectory, resolve).open();
   });
+}
+
+function getTranslator(app: App): (key: LocaleKey) => string {
+  const locale = getObsidianLocale(app);
+  const language = locale.toLowerCase().startsWith("ko") ? "ko" : "en";
+  return (key: LocaleKey) => UI_TEXT[language][key];
+}
+
+function localize(app: App, key: LocaleKey): string {
+  return getTranslator(app)(key);
+}
+
+function formatLocalized(template: string, values: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key) => values[key] ?? match);
+}
+
+function getObsidianLocale(app: App): string {
+  const appWithVaultConfig = app as App & { vault?: { getConfig?: (key: string) => unknown } };
+  const configLocale = appWithVaultConfig.vault?.getConfig?.("locale");
+  if (typeof configLocale === "string" && configLocale) {
+    return configLocale;
+  }
+
+  const localStorageLocale =
+    window.localStorage.getItem("language") ||
+    window.localStorage.getItem("locale") ||
+    window.localStorage.getItem("obsidian-language");
+  if (localStorageLocale) {
+    return localStorageLocale;
+  }
+
+  return document.documentElement.lang || navigator.language || "en";
 }
 
 function parseSections(source: string): Section[] {

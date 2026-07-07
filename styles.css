@@ -7,3 +7,25 @@
   margin-top: 2px;
   text-align: right;
 }
+
+.python-runner-path-template-setting .setting-item-info {
+  min-width: 150px;
+}
+
+.python-runner-path-template-setting .setting-item-control {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  flex: 1 1 auto;
+}
+
+.python-runner-template-path {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
