@@ -3,7 +3,7 @@
 ## Settings
 ```yaml
 python_env:
-  python: "C:\Users\me\project\.venv\Scripts\python.exe"
+  python: "{{vault_root}}\\.venv\\Scripts\\python.exe"
   install_missing_requirements: false
   requirements_packages:
     - numpy

@@ -3,7 +3,7 @@
 ## Settings
 ```yaml settings
 python_env:
-  python: "C:\obs-SMOKE\.venv\Scripts\python.exe"
+  python: "{{vault_root}}\\.venv\\Scripts\\python.exe"
   install_missing_requirements: true
   requirements_packages:
     - numpy

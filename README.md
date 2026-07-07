@@ -24,7 +24,7 @@ Enable **Python Runner** from Obsidian's Community plugins settings.
 ## Settings
 ```yaml
 python_env:
-  python: "C:\obs-SMOKE\.venv\Scripts\python.exe"
+  python: "{{vault_root}}\\.venv\\Scripts\\python.exe"
   install_missing_requirements: true
   requirements_packages:
     - numpy
@@ -97,6 +97,16 @@ Run the focused note with `Python Runner: Run current note`.
 - `log.capture_requirements.requirements_mode`: `packages` records selected packages, `freeze` records `python -m pip freeze`.
 
 The Settings YAML is injected into the script as a normal Python `settings` dict.
+
+## Path Templates
+
+Python paths, working directories, and string values in Variables support path templates:
+
+- `{{note_dir}}`: folder containing the current markdown note.
+- `{{vault_root}}`: root folder of the current Obsidian vault.
+- Custom templates such as `{{data_dir}}`: add them in the plugin settings.
+
+`note_dir` and `vault_root` are reserved and read-only in settings. Custom templates may reference other templates, for example `{{vault_root}}\\data`.
 
 ## Variables
 

@@ -18,12 +18,14 @@ interface PythonRunnerSettings {
   defaultPythonPath: string;
   defaultWorkingDirectory: string;
   timeoutSeconds: number;
+  pathTemplates: Record<string, string>;
 }
 
 const DEFAULT_SETTINGS: PythonRunnerSettings = {
   defaultPythonPath: "python",
   defaultWorkingDirectory: ".",
-  timeoutSeconds: 60
+  timeoutSeconds: 60,
+  pathTemplates: {}
 };
 
 interface Section {
@@ -102,6 +104,7 @@ const MAX_CAPTURE_BYTES = 1024 * 1024;
 
 export default class PythonRunnerPlugin extends Plugin {
   settings: PythonRunnerSettings;
+  settingTab: PythonRunnerSettingTab;
 
   async onload() {
     await this.loadSettings();
@@ -112,11 +115,13 @@ export default class PythonRunnerPlugin extends Plugin {
       callback: () => this.runCurrentNote()
     });
 
-    this.addSettingTab(new PythonRunnerSettingTab(this.app, this));
+    this.settingTab = new PythonRunnerSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
   }
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    this.settings.pathTemplates = Object.assign({}, this.settings.pathTemplates);
   }
 
   async saveSettings() {
@@ -416,11 +421,23 @@ export default class PythonRunnerPlugin extends Plugin {
 
   private buildRunConfig(source: string, sections: Section[], vaultBasePath: string, file: TFile): EffectiveRunConfig {
     const rawSettings = parseSettings(readSectionValue(source, sections, "Settings"));
-    const rawVariables = parseVariables(readSectionContent(source, sections, "Variables"), vaultBasePath, file);
+    const rawVariables = parseVariables(
+      readSectionContent(source, sections, "Variables"),
+      vaultBasePath,
+      file,
+      this.settings.pathTemplates
+    );
     const settings = normalizeRunSettings(rawSettings);
     const legacyPython = readSectionValue(source, sections, "Python");
     const legacyWorkingDirectory = readSectionValue(source, sections, "Working Directory");
-    const pythonPath = stripWrappingQuotes(settings.python || legacyPython || this.settings.defaultPythonPath);
+    const pythonPath = stripWrappingQuotes(
+      expandPathTokens(
+        settings.python || legacyPython || this.settings.defaultPythonPath,
+        vaultBasePath,
+        file,
+        this.settings.pathTemplates
+      ) as string
+    );
     const workingDirectoryValue = stripWrappingQuotes(
       settings.working_directory || legacyWorkingDirectory || this.settings.defaultWorkingDirectory
     );
@@ -431,7 +448,12 @@ export default class PythonRunnerPlugin extends Plugin {
       rawVariables,
       pythonPath,
       workingDirectoryValue,
-      workingDirectory: resolveWorkingDirectory(vaultBasePath, file, workingDirectoryValue),
+      workingDirectory: resolveWorkingDirectory(
+        vaultBasePath,
+        file,
+        workingDirectoryValue,
+        this.settings.pathTemplates
+      ),
       appendRunHistory: settings.append_run_history ?? true,
       capturePythonInfo: settings.capture_python_info ?? true,
       captureRequirements: settings.capture_requirements ?? true,
@@ -545,6 +567,86 @@ class RunningPythonModal extends Modal {
   }
 }
 
+class PathTemplateModal extends Modal {
+  private plugin: PythonRunnerPlugin;
+  private existingName: string | null;
+  private nameValue: string;
+  private pathValue: string;
+
+  constructor(app: App, plugin: PythonRunnerPlugin, existingName: string | null = null) {
+    super(app);
+    this.plugin = plugin;
+    this.existingName = existingName;
+    this.nameValue = existingName ?? "";
+    this.pathValue = existingName ? plugin.settings.pathTemplates[existingName] ?? "" : "";
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: this.existingName ? "Edit path template" : "Add path template" });
+    contentEl.createEl("p", {
+      text: "Use the template in notes as {{template_name}}. Reserved templates note_dir and vault_root cannot be edited."
+    });
+
+    new Setting(contentEl)
+      .setName("Template name")
+      .setDesc("Letters, numbers, and underscores only. Example: data_dir")
+      .addText((text) => {
+        text
+          .setPlaceholder("data_dir")
+          .setValue(this.nameValue)
+          .onChange((value) => {
+            this.nameValue = value.trim();
+          });
+        text.inputEl.disabled = this.existingName !== null;
+      });
+
+    new Setting(contentEl)
+      .setName("Path")
+      .setDesc("May include {{note_dir}}, {{vault_root}}, or another custom template.")
+      .addText((text) =>
+        text
+          .setPlaceholder("{{vault_root}}\\data")
+          .setValue(this.pathValue)
+          .onChange((value) => {
+            this.pathValue = value.trim();
+          })
+      );
+
+    new Setting(contentEl)
+      .addButton((button) =>
+        button
+          .setButtonText("Cancel")
+          .onClick(() => this.close())
+      )
+      .addButton((button) =>
+        button
+          .setButtonText("Save")
+          .setCta()
+          .onClick(async () => {
+            if (!isValidTemplateName(this.nameValue)) {
+              new Notice("Template name must use letters, numbers, and underscores, and cannot start with a number.");
+              return;
+            }
+            if (isReservedTemplateName(this.nameValue)) {
+              new Notice("note_dir and vault_root are reserved templates.");
+              return;
+            }
+            if (!this.pathValue) {
+              new Notice("Template path cannot be empty.");
+              return;
+            }
+
+            this.plugin.settings.pathTemplates[this.nameValue] = this.pathValue;
+            await this.plugin.saveSettings();
+            this.close();
+            this.plugin.settingTab?.display();
+          })
+      );
+  }
+}
+
 class PythonRunnerSettingTab extends PluginSettingTab {
   plugin: PythonRunnerPlugin;
 
@@ -596,6 +698,50 @@ class PythonRunnerSettingTab extends PluginSettingTab {
             this.plugin.settings.timeoutSeconds = Number.isFinite(parsed) && parsed > 0 ? parsed : 60;
             await this.plugin.saveSettings();
           })
+      );
+
+    containerEl.createEl("h3", { text: "Path templates" });
+    containerEl.createEl("p", {
+      text: "Reserved templates are available in Python paths, working directories, and Variables strings."
+    });
+
+    new Setting(containerEl)
+      .setName("{{note_dir}}")
+      .setDesc("Folder containing the current markdown note. Reserved and read-only.");
+
+    new Setting(containerEl)
+      .setName("{{vault_root}}")
+      .setDesc("Root folder of the current Obsidian vault. Reserved and read-only.");
+
+    for (const [name, templatePath] of Object.entries(this.plugin.settings.pathTemplates).sort()) {
+      new Setting(containerEl)
+        .setName(`{{${name}}}`)
+        .setDesc(templatePath)
+        .addButton((button) =>
+          button
+            .setButtonText("Edit")
+            .onClick(() => new PathTemplateModal(this.app, this.plugin, name).open())
+        )
+        .addButton((button) =>
+          button
+            .setButtonText("Delete")
+            .setWarning()
+            .onClick(async () => {
+              delete this.plugin.settings.pathTemplates[name];
+              await this.plugin.saveSettings();
+              this.display();
+            })
+        );
+    }
+
+    new Setting(containerEl)
+      .setName("Custom path template")
+      .setDesc("Add a reusable path token such as {{data_dir}} or {{venv_dir}}.")
+      .addButton((button) =>
+        button
+          .setButtonText("Add")
+          .setCta()
+          .onClick(() => new PathTemplateModal(this.app, this.plugin).open())
       );
   }
 }
@@ -757,7 +903,12 @@ function parseSettings(value: string): Record<string, unknown> {
   return isPlainObject(parsed) ? parsed : {};
 }
 
-function parseVariables(value: string, vaultBasePath: string, file: TFile): Record<string, unknown> {
+function parseVariables(
+  value: string,
+  vaultBasePath: string,
+  file: TFile,
+  pathTemplates: Record<string, string>
+): Record<string, unknown> {
   const variables: Record<string, unknown> = {};
   const blocks = extractFencedBlocks(value);
 
@@ -781,7 +932,7 @@ function parseVariables(value: string, vaultBasePath: string, file: TFile): Reco
     }
   }
 
-  return expandPathTokens(variables, vaultBasePath, file) as Record<string, unknown>;
+  return expandPathTokens(variables, vaultBasePath, file, pathTemplates) as Record<string, unknown>;
 }
 
 function parseVariableBlock(block: FencedBlock): unknown {
@@ -994,8 +1145,13 @@ function formatDateTime(value: Date): string {
   return value.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "Z");
 }
 
-function resolveWorkingDirectory(vaultBasePath: string, file: TFile, value: string): string {
-  const trimmed = value.trim() || ".";
+function resolveWorkingDirectory(
+  vaultBasePath: string,
+  file: TFile,
+  value: string,
+  pathTemplates: Record<string, string>
+): string {
+  const trimmed = (expandPathTokens(value, vaultBasePath, file, pathTemplates) as string).trim() || ".";
   const noteDir = path.dirname(path.join(vaultBasePath, file.path));
 
   if (trimmed === "." || trimmed === "{{note_dir}}") {
@@ -1009,28 +1165,61 @@ function resolveWorkingDirectory(vaultBasePath: string, file: TFile, value: stri
   return isAbsolutePath(trimmed) ? trimmed : path.join(noteDir, trimmed);
 }
 
-function expandPathTokens(value: unknown, vaultBasePath: string, file: TFile): unknown {
+function expandPathTokens(
+  value: unknown,
+  vaultBasePath: string,
+  file: TFile,
+  pathTemplates: Record<string, string>
+): unknown {
   const noteDir = path.dirname(path.join(vaultBasePath, file.path));
 
   if (typeof value === "string") {
-    return value
-      .split("{{note_dir}}").join(noteDir)
-      .split("{{vault_root}}").join(vaultBasePath);
+    return expandPathTemplateString(value, {
+      note_dir: noteDir,
+      vault_root: vaultBasePath,
+      ...pathTemplates
+    });
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => expandPathTokens(item, vaultBasePath, file));
+    return value.map((item) => expandPathTokens(item, vaultBasePath, file, pathTemplates));
   }
 
   if (isPlainObject(value)) {
     const expanded: Record<string, unknown> = {};
     for (const [key, item] of Object.entries(value)) {
-      expanded[key] = expandPathTokens(item, vaultBasePath, file);
+      expanded[key] = expandPathTokens(item, vaultBasePath, file, pathTemplates);
     }
     return expanded;
   }
 
   return value;
+}
+
+function expandPathTemplateString(value: string, templates: Record<string, string>): string {
+  let expanded = value;
+
+  for (let index = 0; index < 10; index += 1) {
+    const next = expanded.replace(/\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/g, (match, name: string) => {
+      return templates[name] ?? match;
+    });
+
+    if (next === expanded) {
+      return next;
+    }
+
+    expanded = next;
+  }
+
+  return expanded;
+}
+
+function isValidTemplateName(value: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value);
+}
+
+function isReservedTemplateName(value: string): boolean {
+  return value === "note_dir" || value === "vault_root";
 }
 
 function isAbsolutePath(value: string): boolean {
