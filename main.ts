@@ -10,7 +10,7 @@ import {
 } from "obsidian";
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
-import { tmpdir } from "os";
+import { homedir, tmpdir } from "os";
 import * as path from "path";
 import { parse as parseYaml } from "yaml";
 
@@ -26,6 +26,12 @@ const DEFAULT_SETTINGS: PythonRunnerSettings = {
   defaultWorkingDirectory: ".",
   timeoutSeconds: 60,
   pathTemplates: {}
+};
+
+const BUILT_IN_PATH_TEMPLATE_LABELS: Record<string, string> = {
+  documents: "문서",
+  downloads: "다운로드",
+  desktop: "바탕화면"
 };
 
 interface Section {
@@ -120,8 +126,13 @@ export default class PythonRunnerPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-    this.settings.pathTemplates = Object.assign({}, this.settings.pathTemplates);
+    const loadedData = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+    this.settings.pathTemplates = Object.assign(
+      {},
+      getDefaultPathTemplates(),
+      this.settings.pathTemplates
+    );
   }
 
   async saveSettings() {
@@ -714,15 +725,23 @@ class PythonRunnerSettingTab extends PluginSettingTab {
       .setDesc("Root folder of the current Obsidian vault. Reserved and read-only.");
 
     for (const [name, templatePath] of Object.entries(this.plugin.settings.pathTemplates).sort()) {
-      new Setting(containerEl)
+      const setting = new Setting(containerEl)
         .setName(`{{${name}}}`)
         .setDesc(templatePath)
         .addButton((button) =>
           button
             .setButtonText("Edit")
             .onClick(() => new PathTemplateModal(this.app, this.plugin, name).open())
-        )
-        .addButton((button) =>
+        );
+
+      const koreanLabel = BUILT_IN_PATH_TEMPLATE_LABELS[name];
+      if (koreanLabel) {
+        setting.nameEl.createDiv({
+          cls: "python-runner-template-label",
+          text: koreanLabel
+        });
+      } else {
+        setting.addButton((button) =>
           button
             .setButtonText("Delete")
             .setWarning()
@@ -732,6 +751,7 @@ class PythonRunnerSettingTab extends PluginSettingTab {
               this.display();
             })
         );
+      }
     }
 
     new Setting(containerEl)
@@ -1212,6 +1232,15 @@ function expandPathTemplateString(value: string, templates: Record<string, strin
   }
 
   return expanded;
+}
+
+function getDefaultPathTemplates(): Record<string, string> {
+  const home = process.env.USERPROFILE || homedir();
+  return {
+    documents: path.join(home, "Documents"),
+    downloads: path.join(home, "Downloads"),
+    desktop: path.join(home, "Desktop")
+  };
 }
 
 function isValidTemplateName(value: string): boolean {

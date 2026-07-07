@@ -104,9 +104,12 @@ Python paths, working directories, and string values in Variables support path t
 
 - `{{note_dir}}`: folder containing the current markdown note.
 - `{{vault_root}}`: root folder of the current Obsidian vault.
+- `{{documents}}`: current Windows user's Documents folder.
+- `{{downloads}}`: current Windows user's Downloads folder.
+- `{{desktop}}`: current Windows user's Desktop folder.
 - Custom templates such as `{{data_dir}}`: add them in the plugin settings.
 
-`note_dir` and `vault_root` are reserved and read-only in settings. Custom templates may reference other templates, for example `{{vault_root}}\\data`.
+`note_dir` and `vault_root` are reserved and read-only in settings. `documents`, `downloads`, and `desktop` are provided by default. Custom templates may reference other templates, for example `{{vault_root}}\\data`.
 
 ## Variables
 
