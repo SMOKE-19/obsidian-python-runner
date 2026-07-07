@@ -41,10 +41,28 @@ log:
     requirements_mode: packages
 ```
 
+## Variables
+```yaml variables
+x: 10
+input_csv: "{{note_dir}}\\data\\input.csv"
+```
+
+```sql query
+select *
+from read_csv_auto($input_csv)
+```
+
+```json options
+{
+  "limit": 1000
+}
+```
+
 ## Script
 ```python
 print(settings["python_env"]["python"])
 print(settings["execution"]["working_directory"])
+print(variables["x"])
 ```
 
 ## Result
@@ -79,6 +97,19 @@ Run the focused note with `Python Runner: Run current note`.
 - `log.capture_requirements.requirements_mode`: `packages` records selected packages, `freeze` records `python -m pip freeze`.
 
 The Settings YAML is injected into the script as a normal Python `settings` dict.
+
+## Variables
+
+`## Variables` injects a normal Python `variables` dict.
+
+- `yaml variables`: merge the parsed YAML object into top-level `variables`.
+- `yaml name`: set `variables[name]` to the parsed YAML value.
+- `json name`: set `variables[name]` to the parsed JSON value.
+- `sql name`: set `variables[name]` to the raw SQL string.
+- `text name`: set `variables[name]` to the raw text string.
+- Any other `lang name`: set `variables[name]` to the raw string.
+
+String values inside variables expand `{{note_dir}}` and `{{vault_root}}`.
 
 ## Release Artifacts
 

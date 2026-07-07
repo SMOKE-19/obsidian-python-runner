@@ -31,10 +31,20 @@ install_missing_requirements를 true로 두고 실행하면 누락 패키지를 
 Settings YAML은 Python 코드 안에서 settings dict로 바로 사용할 수 있습니다.
 -->
 
+## Variables
+```yaml variables
+example_value: 1
+```
+
+```text note
+Plain text variables are injected as strings.
+```
+
 ## Script
 ```python
 print("hello from Obsidian")
 print(settings["execution"]["working_directory"])
+print(variables)
 ```
 
 ## Result

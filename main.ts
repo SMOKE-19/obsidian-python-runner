@@ -56,6 +56,7 @@ interface NoteRunSettings {
 
 interface EffectiveRunConfig {
   rawSettings: Record<string, unknown>;
+  rawVariables: Record<string, unknown>;
   pythonPath: string;
   workingDirectoryValue: string;
   workingDirectory: string;
@@ -89,6 +90,12 @@ interface ProbeResult {
   ok: boolean;
   stdout: string;
   stderr: string;
+}
+
+interface FencedBlock {
+  language: string;
+  name: string;
+  content: string;
 }
 
 const MAX_CAPTURE_BYTES = 1024 * 1024;
@@ -178,7 +185,7 @@ export default class PythonRunnerPlugin extends Plugin {
         }
 
         if (!result) {
-          const runnableScript = buildRunnableScript(config.rawSettings, script);
+          const runnableScript = buildRunnableScript(config.rawSettings, config.rawVariables, script);
           result = await this.executePython(config.pythonPath, runnableScript, config.workingDirectory, config.timeoutSeconds, (cancel) => {
             runningModal.setCancelHandler(cancel);
           });
@@ -409,6 +416,7 @@ export default class PythonRunnerPlugin extends Plugin {
 
   private buildRunConfig(source: string, sections: Section[], vaultBasePath: string, file: TFile): EffectiveRunConfig {
     const rawSettings = parseSettings(readSectionValue(source, sections, "Settings"));
+    const rawVariables = parseVariables(readSectionContent(source, sections, "Variables"), vaultBasePath, file);
     const settings = normalizeRunSettings(rawSettings);
     const legacyPython = readSectionValue(source, sections, "Python");
     const legacyWorkingDirectory = readSectionValue(source, sections, "Working Directory");
@@ -420,6 +428,7 @@ export default class PythonRunnerPlugin extends Plugin {
 
     return {
       rawSettings,
+      rawVariables,
       pythonPath,
       workingDirectoryValue,
       workingDirectory: resolveWorkingDirectory(vaultBasePath, file, workingDirectoryValue),
@@ -638,13 +647,17 @@ function parseSections(source: string): Section[] {
 }
 
 function readSectionValue(source: string, sections: Section[], name: string): string {
+  const content = readSectionContent(source, sections, name);
+  return content ? extractFirstFence(content).trim() : "";
+}
+
+function readSectionContent(source: string, sections: Section[], name: string): string {
   const section = findSection(sections, name);
   if (!section) {
     return "";
   }
 
-  const content = source.slice(section.contentStart, section.end).trim();
-  return extractFirstFence(content).trim();
+  return source.slice(section.contentStart, section.end).trim();
 }
 
 function updateSection(source: string, name: string, content: string): string {
@@ -703,6 +716,24 @@ function extractFirstFence(content: string): string {
   return match?.[1] ?? content;
 }
 
+function extractFencedBlocks(content: string): FencedBlock[] {
+  const blocks: FencedBlock[] = [];
+  const pattern = /```([^\n]*)\n([\s\S]*?)```/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(content)) !== null) {
+    const info = match[1].trim();
+    const [language = "", name = ""] = info.split(/\s+/);
+    blocks.push({
+      language: language.toLowerCase(),
+      name,
+      content: match[2]
+    });
+  }
+
+  return blocks;
+}
+
 function stripWrappingQuotes(value: string): string {
   if (value.length < 2) {
     return value;
@@ -724,6 +755,47 @@ function parseSettings(value: string): Record<string, unknown> {
 
   const parsed = parseYaml(escapeBackslashesInQuotedYamlScalars(value));
   return isPlainObject(parsed) ? parsed : {};
+}
+
+function parseVariables(value: string, vaultBasePath: string, file: TFile): Record<string, unknown> {
+  const variables: Record<string, unknown> = {};
+  const blocks = extractFencedBlocks(value);
+
+  for (const block of blocks) {
+    if (!block.language || !block.name) {
+      continue;
+    }
+
+    const parsed = parseVariableBlock(block);
+    if (block.language === "yaml" || block.language === "yml") {
+      if (block.name === "variables") {
+        if (!isPlainObject(parsed)) {
+          throw new Error("Variables block 'yaml variables' must contain a YAML object.");
+        }
+        Object.assign(variables, parsed);
+      } else {
+        variables[block.name] = parsed;
+      }
+    } else {
+      variables[block.name] = parsed;
+    }
+  }
+
+  return expandPathTokens(variables, vaultBasePath, file) as Record<string, unknown>;
+}
+
+function parseVariableBlock(block: FencedBlock): unknown {
+  const content = block.content.trimEnd();
+
+  if (block.language === "yaml" || block.language === "yml") {
+    return parseYaml(escapeBackslashesInQuotedYamlScalars(content));
+  }
+
+  if (block.language === "json") {
+    return content.trim() ? JSON.parse(content) : {};
+  }
+
+  return content;
 }
 
 function escapeBackslashesInQuotedYamlScalars(value: string): string {
@@ -770,12 +842,18 @@ function normalizeRunSettings(rawSettings: Record<string, unknown>): NoteRunSett
   };
 }
 
-function buildRunnableScript(rawSettings: Record<string, unknown>, script: string): string {
+function buildRunnableScript(
+  rawSettings: Record<string, unknown>,
+  rawVariables: Record<string, unknown>,
+  script: string
+): string {
   const encodedSettings = Buffer.from(JSON.stringify(rawSettings), "utf8").toString("base64");
+  const encodedVariables = Buffer.from(JSON.stringify(rawVariables), "utf8").toString("base64");
   return [
     "import base64 as __obsidian_python_runner_base64",
     "import json as __obsidian_python_runner_json",
     `settings = __obsidian_python_runner_json.loads(__obsidian_python_runner_base64.b64decode("${encodedSettings}").decode("utf-8"))`,
+    `variables = __obsidian_python_runner_json.loads(__obsidian_python_runner_base64.b64decode("${encodedVariables}").decode("utf-8"))`,
     "del __obsidian_python_runner_base64, __obsidian_python_runner_json",
     "",
     script
@@ -929,6 +1007,30 @@ function resolveWorkingDirectory(vaultBasePath: string, file: TFile, value: stri
   }
 
   return isAbsolutePath(trimmed) ? trimmed : path.join(noteDir, trimmed);
+}
+
+function expandPathTokens(value: unknown, vaultBasePath: string, file: TFile): unknown {
+  const noteDir = path.dirname(path.join(vaultBasePath, file.path));
+
+  if (typeof value === "string") {
+    return value
+      .split("{{note_dir}}").join(noteDir)
+      .split("{{vault_root}}").join(vaultBasePath);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => expandPathTokens(item, vaultBasePath, file));
+  }
+
+  if (isPlainObject(value)) {
+    const expanded: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      expanded[key] = expandPathTokens(item, vaultBasePath, file);
+    }
+    return expanded;
+  }
+
+  return value;
 }
 
 function isAbsolutePath(value: string): boolean {
