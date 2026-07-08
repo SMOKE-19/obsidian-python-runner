@@ -1,6 +1,6 @@
 {
   "name": "obsidian-python-runner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Run Python scripts from Obsidian markdown notes and write stdout/stderr back into the note.",
   "main": "main.js",
   "scripts": {

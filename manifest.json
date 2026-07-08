@@ -1,7 +1,7 @@
 {
   "id": "python-runner",
   "name": "Python Runner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.5.0",
   "description": "Run Python scripts from markdown notes and write stdout/stderr back into the note.",
   "author": "SMOKE-19",
